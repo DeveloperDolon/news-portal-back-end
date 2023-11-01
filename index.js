@@ -59,6 +59,7 @@ async function run() {
     // Send a ping to confirm a successful connection]
 
     const allNewsCollection = client.db("planetNewsDB").collection("allNewsCollection");
+    const favNewsCollection = client.db("planetNewsDB").collection("favNewsCollection");
 
     // jwt related requests
     app.post("/jwt", logger, async(req, res) => {
@@ -74,12 +75,43 @@ async function run() {
 
     // news related requests
 
-    app.get("/news/:id", logger, async (req, res) => {
-      const id = req.params.id;
-      const filter = {_id: new ObjectId(id)};
+    app.post("/fav-news", async (req, res) => {
+      try{
 
-      const result = await allNewsCollection.findOne(filter);
-      res.send(result);
+        const data = req.body;
+        const result = await favNewsCollection.insertOne(data);
+
+        res.send(result);
+
+      } catch(err){
+        console.log(err);
+      }
+    })
+
+    app.get("/fav-news", async (req, res) => {
+      try {
+        const email = req.query.email;
+        const filter = {user : email};
+
+        const result = await favNewsCollection.find(filter).toArray();
+        
+        res.send(result);
+      } catch(err) {
+        console.log(err);
+      }
+
+    })
+
+    app.get("/news/:id", logger, async (req, res) => {
+      try{
+        const id = req.params.id;
+        const filter = {_id: new ObjectId(id)};
+
+        const result = await allNewsCollection.findOne(filter);
+        res.send(result);
+      } catch(err){
+        console.log(err);
+      }
     })
 
     app.get("/all-news", logger, async (req, res) => {
