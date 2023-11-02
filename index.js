@@ -95,6 +95,28 @@ async function run() {
       }
     })
 
+    app.patch("/fav-news/:id", async (req, res) => {
+      try{
+
+        const id = req.params.id;
+        const status = req.body;
+        const query = {_id: new ObjectId(id)};
+
+        const updates = {
+          $set: {
+            status: status
+          }
+        }
+
+        const result = await favNewsCollection.updateOne(query, updates);
+
+        res.send(result);
+
+      } catch(err){
+        console.log(err.message);
+      }
+    })
+
     app.delete("/fav-news/:id" , async (req, res) => {
       try{
         const id = req.params.id;
