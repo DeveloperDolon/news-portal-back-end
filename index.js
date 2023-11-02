@@ -28,7 +28,6 @@ const client = new MongoClient(uri, {
   }
 });
 
-
 const logger = (req, res, next) => {
   console.log("log info : ", req.method, req.url);
   next();
@@ -43,7 +42,8 @@ const verify = (req, res, next) => {
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decode) => {
     if(err) {
-      return res.status(500).send({message: "unauthorized access"});
+      console.log("THis is an error");
+      return res.status(401).send({message: "unauthorized access"});
     }
 
     req.user = decode;
@@ -62,17 +62,25 @@ async function run() {
     const favNewsCollection = client.db("planetNewsDB").collection("favNewsCollection");
 
     // jwt related requests
+    app.post("/logout", logger, async (req, res) => {
+      try{
+        console.log('user logged out', req.body.email)
+        res.clearCookie('token', {maxAge: 0}).send({logout: true});
+      } catch (err) {
+        console.log(err.message);
+      }
+    })
+
     app.post("/jwt", logger, async(req, res) => {
 
       try{
 
         const user = req.body;
-        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "2h"});
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "24h"});
 
         res.cookie('token', token, {
           httpOnly: true,
-          secure: true,
-          sameSite: "none"
+          secure: false,
         }).send({success : true})
 
       } catch (err) {
@@ -81,8 +89,7 @@ async function run() {
     })
 
     // news related requests
-
-    app.post("/fav-news", async (req, res) => {
+    app.post("/fav-news", logger, verify, async (req, res) => {
       try{
 
         const data = req.body;
@@ -95,7 +102,7 @@ async function run() {
       }
     })
 
-    app.patch("/fav-news/:id", async (req, res) => {
+    app.patch("/fav-news/:id", verify, logger, async (req, res) => {
       try{
 
         const id = req.params.id;
@@ -117,7 +124,7 @@ async function run() {
       }
     })
 
-    app.delete("/fav-news/:id" , async (req, res) => {
+    app.delete("/fav-news/:id", verify , async (req, res) => {
       try{
         const id = req.params.id;
         const query = {_id: new ObjectId(id)};
@@ -131,21 +138,25 @@ async function run() {
       }
     })
 
-    app.get("/fav-news", async (req, res) => {
+    app.get("/fav-news", verify, logger,async (req, res) => {
       try {
         const email = req.query.email;
-        const filter = {user : email};
+        if(req.user.email === email) {
+          const filter = {user : email};
 
-        const result = await favNewsCollection.find(filter).toArray();
-        
-        res.send(result);
+          const result = await favNewsCollection.find(filter).toArray();
+          
+          res.send(result);
+          return;
+        }
+        return res.status(401).send({message: "unauthorized access"});
       } catch(err) {
         console.log(err.message);
       }
 
     })
 
-    app.get("/news/:id", logger, async (req, res) => {
+    app.get("/news/:id",logger, async (req, res) => {
       try{
         const id = req.params.id;
         const filter = {_id: new ObjectId(id)};
