@@ -63,14 +63,21 @@ async function run() {
 
     // jwt related requests
     app.post("/jwt", logger, async(req, res) => {
-      const user = req.body;
-      const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "2h"});
 
-      res.cookie('token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none"
-      }).send({success : true})
+      try{
+
+        const user = req.body;
+        const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {expiresIn: "2h"});
+
+        res.cookie('token', token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none"
+        }).send({success : true})
+
+      } catch (err) {
+        console.log(err.message);
+      }
     })
 
     // news related requests
@@ -84,7 +91,21 @@ async function run() {
         res.send(result);
 
       } catch(err){
-        console.log(err);
+        console.log(err.message);
+      }
+    })
+
+    app.delete("/fav-news/:id" , async (req, res) => {
+      try{
+        const id = req.params.id;
+        const query = {_id: new ObjectId(id)};
+
+        const result = await favNewsCollection.deleteOne(query);
+
+        res.send(result);
+
+      } catch (error) {
+        console.log(error.message);
       }
     })
 
@@ -97,7 +118,7 @@ async function run() {
         
         res.send(result);
       } catch(err) {
-        console.log(err);
+        console.log(err.message);
       }
 
     })
@@ -110,7 +131,7 @@ async function run() {
         const result = await allNewsCollection.findOne(filter);
         res.send(result);
       } catch(err){
-        console.log(err);
+        console.log(err.message);
       }
     })
 
@@ -132,12 +153,8 @@ async function run() {
 
             res.send(news);
         }catch(error) {
-            console.log(error);
+            console.log(error.message);
         }
-    })
-
-    app.get("/news/:id" , async (req, res) => {
-
     })
 
 
