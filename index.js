@@ -156,6 +156,15 @@ async function run() {
 
     })
 
+    app.get("/all-news-count", async (req, res) => {
+      try {
+        const count = await allNewsCollection.estimatedDocumentCount();
+        res.send({count: count});
+      } catch(err) {
+        console.log(err.message);
+      }
+    })
+
     app.get("/news/:id",logger, async (req, res) => {
       try{
         const id = req.params.id;
@@ -168,10 +177,25 @@ async function run() {
       }
     })
 
+    app.post("/news", logger, async (req, res) => {
+      try{
+
+        const newsData = req.body;
+        
+        const result = await allNewsCollection.insertOne(newsData);
+        res.send(result);
+
+      } catch(err) {
+        console.log(err.message);
+      }
+    })
+
     app.get("/all-news", logger, async (req, res) => {
 
         try{
-
+            const page = parseInt(req.query.page);
+            const size = parseInt(req.query.size);
+            
             const options = {
                 projection: {
                     headline : 1,
@@ -182,7 +206,10 @@ async function run() {
             }
 
             const cursor = allNewsCollection.find({},options);
-            const news = await cursor.toArray();
+            const news = await cursor
+            .skip(page * size)
+            .limit(size)
+            .toArray();
 
             res.send(news);
         }catch(error) {
